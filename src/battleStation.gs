@@ -30,15 +30,14 @@ const BS_CFG = {
   GMAIL_OUTPUT_SHEET: 'Gmail Review Output',
   TASKS_SHEET: 'monday.com tasks',
   
-  // List sheet columns (0-based)
+  // List sheet columns (0-based) - v2: no TTL column
   L_VENDOR: 0,
-  L_TTL_USD: 1,
-  L_SOURCE: 2,
-  L_STATUS: 3,
-  L_NOTES: 4,
-  L_GMAIL_LINK: 5,
-  L_NO_SNOOZE: 6,
-  L_PROCESSED: 7,
+  L_SOURCE: 1,
+  L_STATUS: 2,
+  L_NOTES: 3,
+  L_GMAIL_LINK: 4,
+  L_NO_SNOOZE: 5,
+  L_PROCESSED: 6,
   
   // Battle Station layout
   HEADER_ROWS: 3,
@@ -237,6 +236,7 @@ function onOpen() {
     .addItem('⚙️ Setup Label Config', 'setupLabelConfig')
     .addItem('⚙️ Setup OCR Settings', 'setupOcrSettings')
     .addItem('⚙️ Set Claude API Key', 'battleStationSetClaudeApiKey')
+    .addItem('📊 Scan Inbox to Log (for 2nd user)', 'scanInboxToLog')
     .addItem('📊 Open Email Log', 'battleStationOpenEmailLog')
     .addItem('📊 Re-log Emails for Vendor', 'battleStationRelogEmails')
     .addItem('🔍 Go to Specific Vendor...', 'battleStationGoTo')
@@ -477,10 +477,9 @@ function loadVendorData(vendorIndex, options) {
   if (vendorIndex > totalVendors) vendorIndex = totalVendors;
   
   const listRow = vendorIndex + 1;
-  const vendorData = listSh.getRange(listRow, 1, 1, 8).getValues()[0];
-  
+  const vendorData = listSh.getRange(listRow, 1, 1, 7).getValues()[0];
+
   const vendor = vendorData[BS_CFG.L_VENDOR] || '';
-  const ttlUsd = vendorData[BS_CFG.L_TTL_USD] || 0;
   const source = vendorData[BS_CFG.L_SOURCE] || '';
   const status = vendorData[BS_CFG.L_STATUS] || '';
   const notes = vendorData[BS_CFG.L_NOTES] || '';
@@ -602,11 +601,9 @@ function loadVendorData(vendorIndex, options) {
   }
   currentRow++;
   
-  // Row 2: Source | Total USD
+  // Row 2: Source
   bsSh.getRange(currentRow, 1).setValue('Source:').setFontWeight('bold');
   bsSh.getRange(currentRow, 2).setValue(source);
-  bsSh.getRange(currentRow, 3).setValue('Total USD:').setFontWeight('bold');
-  bsSh.getRange(currentRow, 4).setValue(`$${Number(ttlUsd).toLocaleString()}`).setHorizontalAlignment('left');
   currentRow++;
   
   // Row 3: Live Verticals | Live Modalities
