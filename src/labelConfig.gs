@@ -59,9 +59,9 @@ const LABEL_CFG_DEFAULTS = {
 
   // How to search for vendor emails when no vendor labels exist:
   //   "name"     = search by vendor name in subject/body
-  //   "contacts" = search by contact email addresses
+  //   "contacts" = search by contact email addresses from monday.com
   //   "both"     = search by both name and contacts
-  vendor_search_mode: 'both',
+  vendor_search_mode: 'contacts',
 
   // Team member 1 (name and email for Gmail link columns)
   team_member_1_name: 'Andy',
@@ -377,7 +377,7 @@ function setupLabelConfig() {
     ['live_email_query', LABEL_CFG_DEFAULTS.live_email_query, 'Gmail query for live/active emails (e.g., "label:inbox", "label:unread", "label:00.received")'],
     ['vendor_label_prefix', LABEL_CFG_DEFAULTS.vendor_label_prefix, 'Prefix for vendor-specific Gmail labels (e.g., "zzzVendors/", "vendors/", or leave blank)'],
     ['vendor_label_style', LABEL_CFG_DEFAULTS.vendor_label_style, '"sublabel" (prefix/Name), "flat" (prefix-slug), or "none" (search by name/email)'],
-    ['vendor_search_mode', LABEL_CFG_DEFAULTS.vendor_search_mode, 'When vendor_label_style=none: "name", "contacts", or "both"'],
+    ['vendor_search_mode', LABEL_CFG_DEFAULTS.vendor_search_mode, 'When vendor_label_style=none: "contacts" (monday.com emails), "name" (vendor name), or "both"'],
     ['snoozed_query', LABEL_CFG_DEFAULTS.snoozed_query, 'Gmail query to identify snoozed emails (e.g., "is:snoozed")'],
     ['exclude_query', LABEL_CFG_DEFAULTS.exclude_query, 'Gmail query to exclude emails (e.g., "-label:archived")'],
     ['priority_label', LABEL_CFG_DEFAULTS.priority_label, 'Label name for priority emails (leave blank if not used)'],

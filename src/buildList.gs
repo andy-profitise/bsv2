@@ -94,9 +94,14 @@ function buildListWithGmailAndNotes() {
     return String(a.name).localeCompare(String(b.name));
   });
 
+  // Fetch contact emails for hot zone detection (reused later for Gmail links)
+  ss.toast('Fetching contact emails for hot zone...', '📇 Contacts', 10);
+  const contactEmailMapForHot = fetchAllContactEmails_();
+  const vendorContactEmailMapForHot = buildVendorContactEmailMap_(shMonB, shMonA, contactEmailMapForHot);
+
   // HOT ZONE: Detect vendors with inbox emails (current user + email log)
   console.log('Detecting hot vendors...');
-  const hotVendorSet = getHotVendors_(all);
+  const hotVendorSet = getHotVendors_(all, vendorContactEmailMapForHot);
   console.log('Hot vendors found:', hotVendorSet.size);
 
   const hotZone = [];
@@ -147,14 +152,18 @@ function buildListWithGmailAndNotes() {
     // Read Gmail sublabel mappings from Settings sheet
     const gmailSublabelMap = readGmailSublabelMap_(ss);
 
-    // Build Gmail links for both team members
+    // Reuse contact email map already fetched for hot zone detection
+    // Build Gmail links for both team members using contact emails
     const gmailData = finalList.map(v => {
       const vendorKey = v.name.toLowerCase();
       const vendorSlug = gmailSublabelMap.has(vendorKey)
         ? gmailSublabelMap.get(vendorKey)
         : null;
 
-      const queries = buildVendorEmailQuery_(v.name, vendorSlug);
+      // Get contact emails for this vendor
+      const contactEmails = vendorContactEmailMapForHot.get(vendorKey) || [];
+
+      const queries = buildVendorEmailQuery_(v.name, vendorSlug, contactEmails);
       const gmailAll = buildGmailSearchUrl_(queries.allQuery);
       const gmailNoSnooze = buildGmailSearchUrl_(queries.noSnoozeQuery);
 
@@ -209,9 +218,10 @@ function buildListWithGmailAndNotes() {
  * detection then reads from the shared log to see both accounts.
  *
  * @param {Array} allVendors - Array of vendor objects
+ * @param {Map} [vendorContactEmailMap] - Map of lowercased vendor name → email addresses
  * @returns {Set} Set of lowercased vendor names that are "hot"
  */
-function getHotVendors_(allVendors) {
+function getHotVendors_(allVendors, vendorContactEmailMap) {
   const hotSet = new Set();
   const cfg = getLabelConfig_();
 
@@ -233,9 +243,19 @@ function getHotVendors_(allVendors) {
     const vendorLabelPrefix = cfg.vendor_label_prefix || '';
     const vendorLabelStyle = cfg.vendor_label_style || 'none';
 
+    // Build reverse map: email address → vendor name (for contact-based matching)
+    const emailToVendorMap = new Map();
+    if (vendorContactEmailMap) {
+      for (const [vendorKey, emails] of vendorContactEmailMap) {
+        for (const email of emails) {
+          emailToVendorMap.set(email.toLowerCase(), vendorKey);
+        }
+      }
+    }
+
     for (const thread of threads) {
       try {
-        matchThreadToVendor_(thread, vendorNames, vendorMap, vendorLabelPrefix, vendorLabelStyle, hotSet);
+        matchThreadToVendor_(thread, vendorNames, vendorMap, vendorLabelPrefix, vendorLabelStyle, hotSet, emailToVendorMap);
       } catch (e) {
         console.log(`Error processing thread: ${e.message}`);
       }
@@ -262,12 +282,40 @@ function getHotVendors_(allVendors) {
 
 /**
  * Try to match a Gmail thread to a vendor name.
- * Uses vendor labels (if configured) or name matching in subject/sender/recipient.
+ * Uses contact email matching first, then vendor labels, then name matching.
+ *
+ * @param {GmailThread} thread
+ * @param {Array} vendorNames - [{name, nameLower}, ...]
+ * @param {Map} vendorMap - lowercased name → original name
+ * @param {string} vendorLabelPrefix
+ * @param {string} vendorLabelStyle
+ * @param {Set} hotSet - Set to add matched vendor names to
+ * @param {Map} [emailToVendorMap] - email address → lowercased vendor name
  */
-function matchThreadToVendor_(thread, vendorNames, vendorMap, vendorLabelPrefix, vendorLabelStyle, hotSet) {
-  let matched = false;
+function matchThreadToVendor_(thread, vendorNames, vendorMap, vendorLabelPrefix, vendorLabelStyle, hotSet, emailToVendorMap) {
 
-  // METHOD 1: Check vendor labels (if configured)
+  // METHOD 1: Match by contact email addresses (most reliable)
+  if (emailToVendorMap && emailToVendorMap.size > 0) {
+    const messages = thread.getMessages();
+    if (messages.length > 0) {
+      for (const msg of messages) {
+        const participants = [
+          msg.getFrom() || '',
+          msg.getTo() || '',
+          msg.getCc() || ''
+        ].join(' ').toLowerCase();
+
+        for (const [contactEmail, vendorKey] of emailToVendorMap) {
+          if (participants.includes(contactEmail)) {
+            hotSet.add(vendorKey);
+            return;
+          }
+        }
+      }
+    }
+  }
+
+  // METHOD 2: Check vendor labels (if configured)
   if (vendorLabelStyle !== 'none' && vendorLabelPrefix) {
     const labels = thread.getLabels();
     for (const label of labels) {
@@ -298,12 +346,12 @@ function matchThreadToVendor_(thread, vendorNames, vendorMap, vendorLabelPrefix,
     }
   }
 
-  // METHOD 2: Name match in subject/sender/recipient
+  // METHOD 3: Name match in subject/sender/recipient (fallback)
   const subject = (thread.getFirstMessageSubject() || '').toLowerCase();
-  const messages = thread.getMessages();
+  const messages2 = thread.getMessages();
   let emailText = subject;
-  if (messages.length > 0) {
-    const firstMsg = messages[0];
+  if (messages2.length > 0) {
+    const firstMsg = messages2[0];
     emailText += ' ' + (firstMsg.getFrom() || '').toLowerCase();
     emailText += ' ' + (firstMsg.getTo() || '').toLowerCase();
   }
@@ -388,6 +436,12 @@ function scanInboxToLog() {
     }
   }
 
+  // Fetch contact emails for vendor matching
+  const shMonB = ss.getSheetByName(SHEET_MON_BUYERS);
+  const shMonA = ss.getSheetByName(SHEET_MON_AFFILIATES);
+  const contactEmailMap = fetchAllContactEmails_();
+  const vendorEmailMap = buildVendorContactEmailMap_(shMonB, shMonA, contactEmailMap);
+
   let totalLogged = 0;
 
   for (const thread of threads) {
@@ -411,13 +465,30 @@ function scanInboxToLog() {
         snippet = '';
       }
 
-      // Match to a vendor
-      const searchText = (subject + ' ' + (lastMessage.getFrom() || '') + ' ' + (lastMessage.getTo() || '')).toLowerCase();
+      // Match to a vendor — prefer contact email matching, fall back to name matching
+      const searchText = (subject + ' ' + (lastMessage.getFrom() || '') + ' ' + (lastMessage.getTo() || '') + ' ' + (lastMessage.getCc() || '')).toLowerCase();
       let matchedVendor = '';
-      for (const vName of vendorNames) {
-        if (vName.length >= 3 && searchText.includes(vName.toLowerCase())) {
-          matchedVendor = vName;
-          break;
+
+      // Try contact email matching first
+      if (vendorEmailMap && vendorEmailMap.size > 0) {
+        for (const [vendorKey, emails] of vendorEmailMap) {
+          for (const email of emails) {
+            if (searchText.includes(email.toLowerCase())) {
+              matchedVendor = vendorNames.find(n => n.toLowerCase() === vendorKey) || vendorKey;
+              break;
+            }
+          }
+          if (matchedVendor) break;
+        }
+      }
+
+      // Fall back to name matching
+      if (!matchedVendor) {
+        for (const vName of vendorNames) {
+          if (vName.length >= 3 && searchText.includes(vName.toLowerCase())) {
+            matchedVendor = vName;
+            break;
+          }
         }
       }
 
@@ -602,6 +673,161 @@ function readGmailSublabelMap_(ss) {
   }
   console.log(`Loaded ${map.size} Gmail sublabel mappings from Settings`);
   return map;
+}
+
+
+/** ========== CONTACT EMAIL LOOKUP ========== **/
+
+// Column indexes for the "Contacts" column in synced monday.com sheets
+const BUYERS_CONTACTS_COL_INDEX = 7;       // "Contacts" column in buyers monday.com
+const AFFILIATES_CONTACTS_COL_INDEX = 4;   // "Contacts" column in affiliates monday.com
+
+/**
+ * Fetch ALL contacts from the monday.com Contacts board with their email addresses.
+ * Returns a Map<lowercased contact name, email address>.
+ *
+ * This is a single batch call — much faster than per-vendor lookups.
+ */
+function fetchAllContactEmails_() {
+  const apiToken = PropertiesService.getScriptProperties().getProperty('MONDAY_API_TOKEN') || '';
+  if (!apiToken) {
+    console.log('No MONDAY_API_TOKEN set — skipping contact email fetch');
+    return new Map();
+  }
+
+  const contactsBoardId = '9304296922'; // BS_CFG.CONTACTS_BOARD_ID
+  const emailColumnId = 'email_mkrk53z4';
+  const contactMap = new Map(); // lowercased name → email
+
+  let cursor = null;
+  let pageCount = 0;
+  const maxPages = 20;
+
+  do {
+    pageCount++;
+    const cursorPart = cursor ? `, cursor: "${cursor}"` : '';
+    const query = `
+      query {
+        boards(ids: [${contactsBoardId}]) {
+          items_page(limit: 500${cursorPart}) {
+            cursor
+            items {
+              name
+              column_values(ids: ["${emailColumnId}"]) {
+                id
+                text
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = UrlFetchApp.fetch('https://api.monday.com/v2', {
+        method: 'post',
+        contentType: 'application/json',
+        headers: { 'Authorization': apiToken },
+        payload: JSON.stringify({ query }),
+        muteHttpExceptions: true
+      });
+
+      const result = JSON.parse(response.getContentText());
+      const itemsPage = result.data?.boards?.[0]?.items_page;
+      if (!itemsPage) break;
+
+      for (const item of itemsPage.items) {
+        const name = String(item.name || '').trim();
+        const emailCol = item.column_values.find(cv => cv.id === emailColumnId);
+        const email = String(emailCol?.text || '').trim();
+
+        if (name && email && email.includes('@')) {
+          contactMap.set(name.toLowerCase(), email);
+        }
+      }
+
+      cursor = itemsPage.cursor;
+    } catch (e) {
+      console.log(`Error fetching contacts page ${pageCount}: ${e.message}`);
+      break;
+    }
+  } while (cursor && pageCount < maxPages);
+
+  console.log(`Fetched ${contactMap.size} contacts with email addresses from Contacts board`);
+  return contactMap;
+}
+
+/**
+ * Read vendor → contact names from the synced monday.com sheets.
+ * The "Contacts" column contains comma-separated display names of linked contacts.
+ *
+ * @param {Sheet} sh - The synced monday.com sheet
+ * @param {number} contactsColIdx - 0-based column index for the Contacts column
+ * @returns {Map<string, string[]>} Map of lowercased vendor name → array of lowercased contact names
+ */
+function readVendorContactNames_(sh, contactsColIdx) {
+  const map = new Map();
+  if (!sh) return map;
+
+  const data = sh.getDataRange().getValues();
+  if (data.length < 2) return map;
+
+  for (let i = 1; i < data.length; i++) {
+    const vendor = normalizeName_(data[i][0]);
+    if (!vendor) continue;
+
+    const contactsRaw = String(data[i][contactsColIdx] || '').trim();
+    if (!contactsRaw) continue;
+
+    // display_value is comma-separated contact names
+    const contactNames = contactsRaw.split(',')
+      .map(n => n.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (contactNames.length > 0) {
+      map.set(vendor.toLowerCase(), contactNames);
+    }
+  }
+
+  return map;
+}
+
+/**
+ * Build a map of vendor name → contact email addresses.
+ * Combines the synced contact names from monday.com sheets with
+ * the batch-fetched email addresses from the Contacts board.
+ *
+ * @param {Sheet} shMonB - Buyers monday.com sheet
+ * @param {Sheet} shMonA - Affiliates monday.com sheet
+ * @param {Map} contactEmailMap - Map from fetchAllContactEmails_()
+ * @returns {Map<string, string[]>} Map of lowercased vendor name → array of email addresses
+ */
+function buildVendorContactEmailMap_(shMonB, shMonA, contactEmailMap) {
+  const vendorEmailMap = new Map();
+
+  // Read vendor→contact name mappings from both boards
+  const buyerContacts = readVendorContactNames_(shMonB, BUYERS_CONTACTS_COL_INDEX);
+  const affiliateContacts = readVendorContactNames_(shMonA, AFFILIATES_CONTACTS_COL_INDEX);
+
+  // Merge both into a single map
+  const allVendorContacts = new Map([...buyerContacts, ...affiliateContacts]);
+
+  // Resolve contact names to email addresses
+  for (const [vendorKey, contactNames] of allVendorContacts) {
+    const emails = [];
+    for (const contactName of contactNames) {
+      const email = contactEmailMap.get(contactName);
+      if (email) {
+        emails.push(email);
+      }
+    }
+    if (emails.length > 0) {
+      vendorEmailMap.set(vendorKey, emails);
+    }
+  }
+
+  console.log(`Resolved contact emails for ${vendorEmailMap.size} vendors`);
+  return vendorEmailMap;
 }
 
 
