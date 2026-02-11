@@ -175,6 +175,9 @@ function buildVendorEmailQuery_(vendorName, vendorSlug, contactEmails) {
       vendorFilter = `{${[...domains].join(' ')}}`;
     } else if (domains.size === 1) {
       vendorFilter = [...domains][0];
+    } else {
+      // No active contacts → no domains → nothing to search
+      return null;
     }
   }
 

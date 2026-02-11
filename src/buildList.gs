@@ -164,6 +164,10 @@ function buildListWithGmailAndNotes() {
       const contactEmails = vendorContactEmailMapForHot.get(vendorKey) || [];
 
       const queries = buildVendorEmailQuery_(v.name, vendorSlug, contactEmails);
+      if (!queries) {
+        // No active contacts → no Gmail search links
+        return ['', '', '', '', false];
+      }
       const gmailAll = buildGmailSearchUrl_(queries.allQuery);
       const gmailNoSnooze = buildGmailSearchUrl_(queries.noSnoozeQuery);
 
@@ -697,6 +701,7 @@ function fetchAllContactEmails_() {
 
   const contactsBoardId = '9304296922'; // BS_CFG.CONTACTS_BOARD_ID
   const emailColumnId = 'email_mkrk53z4';
+  const statusColumnId = 'status';
   const contactMap = new Map(); // lowercased name → email
 
   let cursor = null;
@@ -713,7 +718,7 @@ function fetchAllContactEmails_() {
             cursor
             items {
               name
-              column_values(ids: ["${emailColumnId}"]) {
+              column_values(ids: ["${emailColumnId}", "${statusColumnId}"]) {
                 id
                 text
               }
@@ -740,8 +745,11 @@ function fetchAllContactEmails_() {
         const name = String(item.name || '').trim();
         const emailCol = item.column_values.find(cv => cv.id === emailColumnId);
         const email = String(emailCol?.text || '').trim();
+        const statusCol = item.column_values.find(cv => cv.id === statusColumnId);
+        const status = String(statusCol?.text || '').trim().toLowerCase();
 
-        if (name && email && email.includes('@')) {
+        // Only include contacts with Status = Active
+        if (name && email && email.includes('@') && status === 'active') {
           contactMap.set(name.toLowerCase(), email);
         }
       }
@@ -753,7 +761,7 @@ function fetchAllContactEmails_() {
     }
   } while (cursor && pageCount < maxPages);
 
-  console.log(`Fetched ${contactMap.size} contacts with email addresses from Contacts board`);
+  console.log(`Fetched ${contactMap.size} active contacts with email addresses from Contacts board`);
   return contactMap;
 }
 

@@ -2294,9 +2294,10 @@ function getEmailsForVendor_(vendor, listRow) {
     if (!usedListLinks || allEmails.length === 0) {
       Logger.log('Using label-agnostic config for email search');
 
-      // Get contact emails for search
+      // Get contact emails for search (Active contacts only)
       const contactData = getVendorContacts_(vendor, listRow);
       const contactEmails = (contactData.contacts || [])
+        .filter(c => (c.status || '').toLowerCase() === 'active')
         .map(c => c.email)
         .filter(e => e && e.includes('@'));
 
@@ -2307,18 +2308,22 @@ function getEmailsForVendor_(vendor, listRow) {
       // Build queries from config
       const queries = buildVendorEmailQuery_(vendor, vendorSlug, contactEmails);
 
-      Logger.log(`All query: ${queries.allQuery}`);
-      Logger.log(`No-snooze query: ${queries.noSnoozeQuery}`);
+      if (!queries) {
+        Logger.log('No active contacts with email domains — skipping Gmail search');
+      } else {
+        Logger.log(`All query: ${queries.allQuery}`);
+        Logger.log(`No-snooze query: ${queries.noSnoozeQuery}`);
 
-      // Search with the "all" query
-      const threadsAll = searchGmailDirect_(queries.allQuery, 'All');
-      Logger.log(`Found ${threadsAll.length} threads from config query`);
-      allEmails.push(...threadsAll);
+        // Search with the "all" query
+        const threadsAll = searchGmailDirect_(queries.allQuery, 'All');
+        Logger.log(`Found ${threadsAll.length} threads from config query`);
+        allEmails.push(...threadsAll);
 
-      // Search with the "no snooze" query
-      const threadsNoSnooze = searchGmailDirect_(queries.noSnoozeQuery, 'No Snooze');
-      for (const email of threadsNoSnooze) {
-        noSnoozeThreadIds.add(email.threadId);
+        // Search with the "no snooze" query
+        const threadsNoSnooze = searchGmailDirect_(queries.noSnoozeQuery, 'No Snooze');
+        for (const email of threadsNoSnooze) {
+          noSnoozeThreadIds.add(email.threadId);
+        }
       }
     }
 
