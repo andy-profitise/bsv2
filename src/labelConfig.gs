@@ -57,10 +57,8 @@ const LABEL_CFG_DEFAULTS = {
   // Days before "waiting on external" email is overdue
   overdue_external_days: '7',
 
-  // How to search for vendor emails when no vendor labels exist:
-  //   "name"     = search by vendor name in subject/body
-  //   "contacts" = search by contact email addresses from monday.com
-  //   "both"     = search by both name and contacts
+  // (Legacy, no longer used) When vendor_label_style=none, emails are matched
+  // by unique domains extracted from contact email addresses.
   vendor_search_mode: 'contacts',
 
   // Team member 1 (name and email for Gmail link columns)
@@ -138,7 +136,7 @@ function clearLabelConfigCache_() {
  * Depending on config, this could be:
  *   - "label:inbox label:zzzVendors/Acme Corp"  (sublabel style)
  *   - "label:inbox label:zzzvendors-acme-corp"   (flat style)
- *   - "label:inbox Acme Corp"                    (name match, no vendor labels)
+ *   - "label:inbox acmecorp.com"                 (domain from contacts, no vendor labels)
  *
  * @param {string} vendorName - The vendor name
  * @param {string} [vendorSlug] - Optional pre-computed slug for flat labels
@@ -160,27 +158,23 @@ function buildVendorEmailQuery_(vendorName, vendorSlug, contactEmails) {
       .replace(/^-+|-+$/g, '');
     vendorFilter = `label:${cfg.vendor_label_prefix}${slug}`;
   } else {
-    // No vendor labels: search by name and/or contact emails
-    const parts = [];
-
-    if (cfg.vendor_search_mode === 'name' || cfg.vendor_search_mode === 'both') {
-      // Use quotes for exact name match in search
-      parts.push(`"${vendorName}"`);
-    }
-
-    if ((cfg.vendor_search_mode === 'contacts' || cfg.vendor_search_mode === 'both') &&
-        contactEmails && contactEmails.length > 0) {
-      // Search by contact emails: from:email1 OR from:email2
-      const emailFilters = contactEmails.map(e => `from:${e} OR to:${e}`).join(' OR ');
-      if (emailFilters) {
-        parts.push(`(${emailFilters})`);
+    // No vendor labels: search by unique domains from contact emails
+    // e.g., contacts john@acme.com + jane@acme.com → search "acme.com"
+    const domains = new Set();
+    if (contactEmails && contactEmails.length > 0) {
+      for (const email of contactEmails) {
+        const domain = email.split('@')[1];
+        if (domain) {
+          domains.add(domain.toLowerCase());
+        }
       }
     }
 
-    if (parts.length > 1) {
-      vendorFilter = `{${parts.join(' ')}}`;
-    } else if (parts.length === 1) {
-      vendorFilter = parts[0];
+    if (domains.size > 1) {
+      // Multiple domains: OR them together
+      vendorFilter = `{${[...domains].join(' ')}}`;
+    } else if (domains.size === 1) {
+      vendorFilter = [...domains][0];
     }
   }
 
@@ -377,7 +371,7 @@ function setupLabelConfig() {
     ['live_email_query', LABEL_CFG_DEFAULTS.live_email_query, 'Gmail query for live/active emails (e.g., "label:inbox", "label:unread", "label:00.received")'],
     ['vendor_label_prefix', LABEL_CFG_DEFAULTS.vendor_label_prefix, 'Prefix for vendor-specific Gmail labels (e.g., "zzzVendors/", "vendors/", or leave blank)'],
     ['vendor_label_style', LABEL_CFG_DEFAULTS.vendor_label_style, '"sublabel" (prefix/Name), "flat" (prefix-slug), or "none" (search by name/email)'],
-    ['vendor_search_mode', LABEL_CFG_DEFAULTS.vendor_search_mode, 'When vendor_label_style=none: "contacts" (monday.com emails), "name" (vendor name), or "both"'],
+    ['vendor_search_mode', LABEL_CFG_DEFAULTS.vendor_search_mode, '(Legacy) No longer used. Domains are extracted automatically from contact emails.'],
     ['snoozed_query', LABEL_CFG_DEFAULTS.snoozed_query, 'Gmail query to identify snoozed emails (e.g., "is:snoozed")'],
     ['exclude_query', LABEL_CFG_DEFAULTS.exclude_query, 'Gmail query to exclude emails (e.g., "-label:archived")'],
     ['priority_label', LABEL_CFG_DEFAULTS.priority_label, 'Label name for priority emails (leave blank if not used)'],
