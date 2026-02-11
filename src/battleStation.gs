@@ -203,46 +203,51 @@ const BS_CFG = {
 function onOpen() {
   const ui = SpreadsheetApp.getUi();
   ui.createMenu('⚡ Battle Station')
-    .addItem('🔧 Setup Battle Station', 'setupBattleStation')
-    .addItem('🔧 Build List', 'buildListWithGmailAndNotes')
-    .addItem('🔄 Sync monday.com Data', 'syncMondayComBoards')
-    .addItem('🔍 Check Duplicate Vendors', 'checkDuplicateVendors')
-    .addSeparator()
-    .addItem('🧠 Smart Briefing (What to do next)', 'battleStationSmartBriefing')
-    .addItem('📝 Summarize & Update Notes (Claude)', 'battleStationSummarizeToNotes')
-    .addItem('✉️ Draft Reply (Claude)', 'battleStationDraftReply')
-    .addItem('🤖 Analyze Emails (Claude)', 'battleStationAnalyzeEmails')
-    .addSeparator()
-    .addItem('⏭️ Skip Unchanged', 'skipToNextChanged')
-    .addItem('🔄 Skip 5 & Return (Start/Continue)', 'skip5AndReturn')
-    .addItem('↩️ Return to Origin (Skip 5)', 'continueSkip5AndReturn')
-    .addItem('❌ Cancel Skip 5 Session', 'cancelSkip5Session')
-    .addItem('🔁 Auto-Traverse All', 'autoTraverseVendors')
-    .addItem('▶ Next Vendor (Fast)', 'battleStationNext')
-    .addItem('◀ Previous Vendor (Fast)', 'battleStationPrevious')
-    .addSeparator()
-    .addItem('⚡ Quick Refresh (Email Only)', 'battleStationQuickRefresh')
-    .addItem('🔄 Refresh (Full)', 'battleStationRefresh')
-    .addItem('🔄 Hard Refresh (Clear Cache)', 'battleStationHardRefresh')
-    .addSeparator()
-    .addItem('💾 Update monday.com Notes', 'battleStationUpdateMondayNotes')
-    .addItem('✓ Mark as Reviewed', 'battleStationMarkReviewed')
-    .addItem('⚑ Flag/Unflag Vendor', 'battleStationToggleFlag')
-    .addItem('📧 Open Gmail Search', 'battleStationOpenGmail')
-    .addItem('✉️ Email Contacts', 'battleStationEmailContacts')
-    .addSeparator()
-    .addItem('📧 Manage Email Rules', 'battleStationManageEmailRules')
-    .addItem('📧 Process Email Rules', 'battleStationProcessEmailRules')
-    .addSeparator()
-    .addItem('📷 OCR Vendor Upload', 'openVendorOcrUpload')
-    .addItem('⚙️ Setup Label Config', 'setupLabelConfig')
-    .addItem('⚙️ Setup OCR Settings', 'setupOcrSettings')
-    .addItem('⚙️ Set Claude API Key', 'battleStationSetClaudeApiKey')
-    .addItem('📊 Scan Inbox to Log (for 2nd user)', 'scanInboxToLog')
-    .addItem('📊 Open Email Log', 'battleStationOpenEmailLog')
-    .addItem('📊 Re-log Emails for Vendor', 'battleStationRelogEmails')
-    .addItem('📁 Move Spreadsheet to Shared Folder', 'moveMainSpreadsheetToSharedFolder')
-    .addItem('🔍 Go to Specific Vendor...', 'battleStationGoTo')
+    .addSubMenu(ui.createMenu('🔧 Setup & Build')
+      .addItem('🔧 Setup Battle Station', 'setupBattleStation')
+      .addItem('🔧 Build List', 'buildListWithGmailAndNotes')
+      .addItem('🔗 Sync List from Partner', 'syncListFromPartner')
+      .addItem('🔄 Sync monday.com Data', 'syncMondayComBoards')
+      .addItem('🔍 Check Duplicate Vendors', 'checkDuplicateVendors'))
+    .addSubMenu(ui.createMenu('🧠 Claude AI')
+      .addItem('🧠 Smart Briefing (What to do next)', 'battleStationSmartBriefing')
+      .addItem('📝 Summarize & Update Notes', 'battleStationSummarizeToNotes')
+      .addItem('✉️ Draft Reply', 'battleStationDraftReply')
+      .addItem('🤖 Analyze Emails', 'battleStationAnalyzeEmails'))
+    .addSubMenu(ui.createMenu('🧭 Navigate')
+      .addItem('▶ Next Vendor (Fast)', 'battleStationNext')
+      .addItem('◀ Previous Vendor (Fast)', 'battleStationPrevious')
+      .addItem('🔍 Go to Specific Vendor...', 'battleStationGoTo')
+      .addSeparator()
+      .addItem('⏭️ Skip Unchanged', 'skipToNextChanged')
+      .addItem('🔄 Skip 5 & Return (Start/Continue)', 'skip5AndReturn')
+      .addItem('↩️ Return to Origin (Skip 5)', 'continueSkip5AndReturn')
+      .addItem('❌ Cancel Skip 5 Session', 'cancelSkip5Session')
+      .addItem('🔁 Auto-Traverse All', 'autoTraverseVendors'))
+    .addSubMenu(ui.createMenu('🔄 Refresh')
+      .addItem('⚡ Quick Refresh (Email Only)', 'battleStationQuickRefresh')
+      .addItem('🔄 Refresh (Full)', 'battleStationRefresh')
+      .addItem('🔄 Hard Refresh (Clear Cache)', 'battleStationHardRefresh'))
+    .addSubMenu(ui.createMenu('📋 Vendor Actions')
+      .addItem('💾 Update monday.com Notes', 'battleStationUpdateMondayNotes')
+      .addItem('✓ Mark as Reviewed', 'battleStationMarkReviewed')
+      .addItem('⚑ Flag/Unflag Vendor', 'battleStationToggleFlag')
+      .addItem('📧 Open Gmail Search', 'battleStationOpenGmail')
+      .addItem('✉️ Email Contacts', 'battleStationEmailContacts')
+      .addSeparator()
+      .addItem('📧 Manage Email Rules', 'battleStationManageEmailRules')
+      .addItem('📧 Process Email Rules', 'battleStationProcessEmailRules'))
+    .addSubMenu(ui.createMenu('⚙️ Settings')
+      .addItem('⚙️ Setup Label Config', 'setupLabelConfig')
+      .addItem('⚙️ Setup OCR Settings', 'setupOcrSettings')
+      .addItem('⚙️ Set Claude API Key', 'battleStationSetClaudeApiKey')
+      .addItem('🔗 Set Partner Spreadsheet', 'setupPartnerSpreadsheet'))
+    .addSubMenu(ui.createMenu('📊 Tools & Logs')
+      .addItem('📷 OCR Vendor Upload', 'openVendorOcrUpload')
+      .addItem('📊 Scan Inbox to Log (for 2nd user)', 'scanInboxToLog')
+      .addItem('📊 Open Email Log', 'battleStationOpenEmailLog')
+      .addItem('📊 Re-log Emails for Vendor', 'battleStationRelogEmails')
+      .addItem('📁 Move Spreadsheet to Shared Folder', 'moveMainSpreadsheetToSharedFolder'))
     .addToUi();
 }
 
@@ -421,6 +426,44 @@ function getCurrentVendorIndex_() {
 }
 
 /**
+ * Check if current user navigates in reverse (m2/Aden starts from bottom).
+ */
+function isReversedNavigation_() {
+  return getCurrentTeamMemberKey_() === 'm2';
+}
+
+/**
+ * Get the default starting vendor index based on the current user.
+ * m1 (Andy) starts at 1; m2 (Aden) starts at the last vendor.
+ */
+function getDefaultStartIndex_(totalVendors) {
+  return isReversedNavigation_() ? totalVendors : 1;
+}
+
+/**
+ * Get navigation direction: +1 for m1 (forward), -1 for m2 (backward).
+ */
+function getNavDirection_() {
+  return isReversedNavigation_() ? -1 : 1;
+}
+
+/**
+ * Check if a vendor index is at the "end" of navigation for the current user.
+ * For m1: end is totalVendors. For m2: end is 1.
+ */
+function isAtNavEnd_(currentIndex, totalVendors) {
+  return isReversedNavigation_() ? currentIndex <= 1 : currentIndex >= totalVendors;
+}
+
+/**
+ * Check if a vendor index is at the "start" of navigation for the current user.
+ * For m1: start is 1. For m2: start is totalVendors.
+ */
+function isAtNavStart_(currentIndex, totalVendors) {
+  return isReversedNavigation_() ? currentIndex >= totalVendors : currentIndex <= 1;
+}
+
+/**
  * Create or reset the Battle Station sheet
  */
 function setupBattleStation() {
@@ -450,9 +493,13 @@ function setupBattleStation() {
   bsSh.setColumnWidth(8, 90);   // Status (was 150)
   bsSh.setColumnWidth(9, 180);  // Notes/Folder (was 300)
   
-  loadVendorData(1);
-  
-  SpreadsheetApp.getUi().alert('Battle Station initialized!\n\nUse the ⚡ Battle Station menu to navigate:\n- ▶ Next Vendor\n- ◀ Previous Vendor\n- 💾 Update monday.com Notes\n- ✓ Mark as Reviewed\n- ✉️ Email Contacts\n- 🤖 Analyze Emails (Claude)');
+  const listSh = ss.getSheetByName(BS_CFG.LIST_SHEET);
+  const totalVendors = listSh ? listSh.getLastRow() - 1 : 1;
+  const startIdx = getDefaultStartIndex_(totalVendors);
+  loadVendorData(startIdx);
+
+  const directionNote = isReversedNavigation_() ? '\n\nNavigation is reversed (starting from bottom of list).' : '';
+  SpreadsheetApp.getUi().alert('Battle Station initialized!' + directionNote + '\n\nUse the ⚡ Battle Station menu to navigate:\n- ▶ Next Vendor\n- ◀ Previous Vendor\n- 💾 Update monday.com Notes\n- ✓ Mark as Reviewed\n- ✉️ Email Contacts\n- 🤖 Analyze Emails (Claude)');
 }
 
 /**
@@ -1618,20 +1665,22 @@ function loadVendorData(vendorIndex, options) {
     }
   }
 
-  // Show email log stats if available
-  try {
-    const logStats = getEmailLogStats_(vendor);
-    if (logStats.total > 0) {
-      bsSh.getRange(currentRow, 1, 1, 4).merge()
-        .setValue(`📊 Email Log: ${logStats.total} total (${logStats.singlePerson} single-person) | Latest: ${logStats.latestDate ? Utilities.formatDate(logStats.latestDate, 'America/Los_Angeles', 'MMM d, yyyy') : 'N/A'}`)
-        .setFontSize(8)
-        .setFontStyle('italic')
-        .setFontColor('#666666')
-        .setBackground('#f9f9f9');
-      currentRow++;
+  // Show email log stats if we have live emails (skip if no active contacts / no search)
+  if (emails.length > 0) {
+    try {
+      const logStats = getEmailLogStats_(vendor);
+      if (logStats.total > 0) {
+        bsSh.getRange(currentRow, 1, 1, 4).merge()
+          .setValue(`📊 Email Log: ${logStats.total} total (${logStats.singlePerson} single-person) | Latest: ${logStats.latestDate ? Utilities.formatDate(logStats.latestDate, 'America/Los_Angeles', 'MMM d, yyyy') : 'N/A'}`)
+          .setFontSize(8)
+          .setFontStyle('italic')
+          .setFontColor('#666666')
+          .setBackground('#f9f9f9');
+        currentRow++;
+      }
+    } catch (e) {
+      // Non-fatal - skip log stats
     }
-  } catch (e) {
-    // Non-fatal - skip log stats
   }
 
   bsSh.setRowHeight(currentRow, 10);
@@ -3576,32 +3625,32 @@ function battleStationNext() {
   const ss = SpreadsheetApp.getActive();
   const bsSh = ss.getSheetByName(BS_CFG.BATTLE_SHEET);
   const listSh = ss.getSheetByName(BS_CFG.LIST_SHEET);
-  
+
   if (!bsSh || !listSh) {
     SpreadsheetApp.getUi().alert('Battle Station not found. Run setupBattleStation() first.');
     return;
   }
-  
+
+  const totalVendors = listSh.getLastRow() - 1;
   const currentIndex = getCurrentVendorIndex_();
-  
+  const direction = getNavDirection_();
+
   if (!currentIndex) {
-    loadVendorData(1, { loadMode: 'fast' });
+    loadVendorData(getDefaultStartIndex_(totalVendors), { loadMode: 'fast' });
     return;
   }
 
-  const totalVendors = listSh.getLastRow() - 1;
-
-  if (currentIndex >= totalVendors) {
+  if (isAtNavEnd_(currentIndex, totalVendors)) {
     ss.toast('Already at the last vendor!', '⚠️ End of List', 3);
     return;
   }
-  
+
   const listRow = currentIndex + 1;
   const vendor = listSh.getRange(listRow, BS_CFG.L_VENDOR + 1).getValue();
   listSh.getRange(listRow, BS_CFG.L_PROCESSED + 1).setValue(true);
-  
+
   ss.toast(`Marked "${vendor}" as reviewed`, '▶️ Next', 2);
-  loadVendorData(currentIndex + 1, { loadMode: 'fast' });
+  loadVendorData(currentIndex + direction, { loadMode: 'fast' });
 }
 
 /**
@@ -3610,25 +3659,28 @@ function battleStationNext() {
 function battleStationPrevious() {
   const ss = SpreadsheetApp.getActive();
   const bsSh = ss.getSheetByName(BS_CFG.BATTLE_SHEET);
+  const listSh = ss.getSheetByName(BS_CFG.LIST_SHEET);
 
-  if (!bsSh) {
+  if (!bsSh || !listSh) {
     SpreadsheetApp.getUi().alert('Battle Station not found. Run setupBattleStation() first.');
     return;
   }
 
+  const totalVendors = listSh.getLastRow() - 1;
   const currentIndex = getCurrentVendorIndex_();
+  const direction = getNavDirection_();
 
   if (!currentIndex) {
-    loadVendorData(1, { loadMode: 'fast' });
+    loadVendorData(getDefaultStartIndex_(totalVendors), { loadMode: 'fast' });
     return;
   }
 
-  if (currentIndex <= 1) {
-    SpreadsheetApp.getActive().toast('Already at the first vendor!', '⚠️ Start of List', 3);
+  if (isAtNavStart_(currentIndex, totalVendors)) {
+    ss.toast('Already at the first vendor!', '⚠️ Start of List', 3);
     return;
   }
 
-  loadVendorData(currentIndex - 1, { loadMode: 'fast' });
+  loadVendorData(currentIndex - direction, { loadMode: 'fast' });
 }
 
 /**
@@ -3637,14 +3689,16 @@ function battleStationPrevious() {
 function battleStationRefresh() {
   const ss = SpreadsheetApp.getActive();
   const bsSh = ss.getSheetByName(BS_CFG.BATTLE_SHEET);
-  
+  const listSh = ss.getSheetByName(BS_CFG.LIST_SHEET);
+
   if (!bsSh) {
     SpreadsheetApp.getUi().alert('Battle Station not found. Run setupBattleStation() first.');
     return;
   }
-  
+
   const currentIndex = getCurrentVendorIndex_();
-  loadVendorData(currentIndex || 1);
+  const totalVendors = listSh ? listSh.getLastRow() - 1 : 1;
+  loadVendorData(currentIndex || getDefaultStartIndex_(totalVendors));
 }
 
 /**
@@ -3861,7 +3915,9 @@ function battleStationHardRefresh() {
   ss.toast('Cache cleared, refreshing...', '🔄 Hard Refresh', 2);
   
   const currentIndex = getCurrentVendorIndex_();
-  loadVendorData(currentIndex || 1, { useCache: false });
+  const listSh = ss.getSheetByName(BS_CFG.LIST_SHEET);
+  const totalVendors = listSh ? listSh.getLastRow() - 1 : 1;
+  loadVendorData(currentIndex || getDefaultStartIndex_(totalVendors), { useCache: false });
 }
 
 /**
@@ -5157,34 +5213,35 @@ function skipToNextChanged(trackComeback) {
   
   const listData = listSh.getDataRange().getValues();
   const totalVendors = listData.length - 1;
-  
+  const direction = getNavDirection_();
+
   // Get current index using the same function as other navigation
-  let currentIdx = getCurrentVendorIndex_() || 1;
-  
+  let currentIdx = getCurrentVendorIndex_() || getDefaultStartIndex_(totalVendors);
+
   let skippedCount = 0;
-  
+
   ss.toast('Searching for changed vendors...', '⏭️ Skipping', -1);
-  
+
   // Loop through vendors looking for one with changes - start from NEXT vendor
   while (true) {
-    currentIdx++;  // Move to next vendor FIRST
-    
-    // Stop at end
-    if (currentIdx > totalVendors) {
+    currentIdx += direction;  // Move to next vendor FIRST (direction-aware)
+
+    // Stop at end (for m1: > totalVendors, for m2: < 1)
+    if (currentIdx > totalVendors || currentIdx < 1) {
       ss.toast('');
       SpreadsheetApp.getUi().alert(`Checked all remaining vendors.\nSkipped ${skippedCount} unchanged vendor(s).\nNo more vendors with changes found.`);
       return;
     }
-    
+
     const vendor = listData[currentIdx][BS_CFG.L_VENDOR];
     const source = listData[currentIdx][BS_CFG.L_SOURCE] || '';
     const listRow = currentIdx + 1;
-    
+
     ss.toast(`Checking ${vendor}... (${skippedCount} skipped so far)`, '⏭️ Skipping', -1);
-    
+
     // Use the centralized change detection helper
     const changeResult = checkVendorForChanges_(vendor, listRow, source);
-    
+
     if (changeResult.hasChanges) {
       ss.toast('');
       loadVendorData(currentIdx, { forceChanged: true, loadMode: 'fast' });
@@ -5195,7 +5252,7 @@ function skipToNextChanged(trackComeback) {
       if (trackComeback) checkComeback_();
       return;
     }
-    
+
     // No changes - mark as skipped (yellow)
     setListRowColor_(listSh, listRow, BS_CFG.COLOR_ROW_SKIPPED);
     skippedCount++;
@@ -5431,13 +5488,14 @@ function skip5AndReturn() {
     ss.toast(`Continuing Skip 5 & Return (${session.changedFound}/${session.changedTarget} found)`, '🔄 Skip 5 & Return', 2);
   }
   
-  // Search for next changed vendor
+  // Search for next changed vendor (direction-aware)
+  const direction = getNavDirection_();
   let currentIdx = session.currentIdx;
-  
-  while (currentIdx < totalVendors) {
-    currentIdx++;
-    
-    if (currentIdx > totalVendors) {
+
+  while (currentIdx >= 1 && currentIdx <= totalVendors) {
+    currentIdx += direction;
+
+    if (currentIdx > totalVendors || currentIdx < 1) {
       break;
     }
     
@@ -5568,14 +5626,16 @@ function autoTraverseVendors() {
   }
   
   const totalVendors = listSh.getLastRow() - 1;
-  let currentIdx = (getCurrentVendorIndex_() || 0) + 1; // Start on NEXT vendor
-  
-  // Make sure we don't start past the end
-  if (currentIdx > totalVendors) {
+  const direction = getNavDirection_();
+  const defaultStart = getDefaultStartIndex_(totalVendors);
+  let currentIdx = (getCurrentVendorIndex_() || (defaultStart - direction)) + direction; // Start on NEXT vendor
+
+  // Make sure we don't start past the end (direction-aware)
+  if (currentIdx > totalVendors || currentIdx < 1) {
     ui.alert('End of List', 'Already at the last vendor.', ui.ButtonSet.OK);
     return;
   }
-  
+
   // Ask for batch size
   const response = ui.prompt(
     '🔁 Auto-Traverse Vendors',
@@ -5605,28 +5665,29 @@ function autoTraverseVendors() {
   let totalProcessed = 0;
   const startTime = new Date();
   
-  while (currentIdx <= totalVendors) {
+  while (currentIdx >= 1 && currentIdx <= totalVendors) {
     const vendor = listSh.getRange(currentIdx + 1, 1).getValue();
-    
+
     ss.toast(`Processing ${currentIdx} of ${totalVendors}: ${vendor}`, '🔁 Auto-Traverse', 2);
-    
+
     try {
       // Load vendor data (this will record checksums)
       loadVendorData(currentIdx, { forceChanged: true });
       processedCount++;
       totalProcessed++;
-      
+
       Logger.log(`Auto-traverse: Processed ${vendor} (${currentIdx}/${totalVendors})`);
     } catch (e) {
       Logger.log(`Auto-traverse error on ${vendor}: ${e.message}`);
     }
-    
-    currentIdx++;
-    
+
+    currentIdx += direction;
+
     // Check if we've completed a batch
-    if (!noPause && processedCount >= batchSize && currentIdx <= totalVendors) {
+    const inBounds = currentIdx >= 1 && currentIdx <= totalVendors;
+    if (!noPause && processedCount >= batchSize && inBounds) {
       const elapsed = Math.round((new Date() - startTime) / 1000);
-      const remaining = totalVendors - currentIdx + 1;
+      const remaining = isReversedNavigation_() ? currentIdx : totalVendors - currentIdx + 1;
       
       const continueResponse = ui.alert(
         '🔁 Batch Complete',
@@ -6664,9 +6725,11 @@ IMPORTANT: At the very end of your response, include a section exactly like this
     const html = HtmlService.createHtmlOutput(htmlContent).setWidth(800).setHeight(650);
     ui.showModalDialog(html, '🧠 Smart Briefing — What to do next');
 
-    // Load vendor #1 so user can start traversing
+    // Load first vendor (direction-aware) so user can start traversing
     if (priorityNames.length > 0) {
-      loadVendorData(1, { loadMode: 'fast' });
+      const listSh2 = ss.getSheetByName(BS_CFG.LIST_SHEET);
+      const total2 = listSh2 ? listSh2.getLastRow() - 1 : 1;
+      loadVendorData(getDefaultStartIndex_(total2), { loadMode: 'fast' });
     }
 
   } catch (e) {
