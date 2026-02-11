@@ -124,10 +124,13 @@ function buildListWithGmailAndNotes() {
     shOut.getRange(1, 1, lastRow, lastCol).clear();
   }
 
-  // Headers (no more TTL column)
-  shOut.getRange(1, 1, 1, 7).setValues([[
+  // Headers: dual Gmail link columns for both team members
+  const team = getTeamMembers_();
+  shOut.getRange(1, 1, 1, 9).setValues([[
     'Vendor', 'Source', 'Status', 'Notes',
-    'Gmail Link', 'no snoozing', 'processed?'
+    `${team.m1.name} Gmail`, `${team.m1.name} no snooze`,
+    `${team.m2.name} Gmail`, `${team.m2.name} no snooze`,
+    'processed?'
   ]]).setFontWeight('bold').setBackground('#e8f0fe');
 
   if (finalList.length > 0) {
@@ -144,7 +147,7 @@ function buildListWithGmailAndNotes() {
     // Read Gmail sublabel mappings from Settings sheet
     const gmailSublabelMap = readGmailSublabelMap_(ss);
 
-    // Build Gmail links using label config
+    // Build Gmail links for both team members
     const gmailData = finalList.map(v => {
       const vendorKey = v.name.toLowerCase();
       const vendorSlug = gmailSublabelMap.has(vendorKey)
@@ -155,22 +158,25 @@ function buildListWithGmailAndNotes() {
       const gmailAll = buildGmailSearchUrl_(queries.allQuery);
       const gmailNoSnooze = buildGmailSearchUrl_(queries.noSnoozeQuery);
 
-      return [gmailAll, gmailNoSnooze, false];
+      // Same search URL for both people (each opens in their own /u/0/ primary account)
+      return [gmailAll, gmailNoSnooze, gmailAll, gmailNoSnooze, false];
     });
 
-    shOut.getRange(2, 5, gmailData.length, 3).setValues(gmailData);
+    shOut.getRange(2, 5, gmailData.length, 5).setValues(gmailData);
 
     // Highlight hot zone rows
     if (hotZone.length > 0) {
-      shOut.getRange(2, 1, hotZone.length, 7).setBackground('#e8f5e9'); // Light green
+      shOut.getRange(2, 1, hotZone.length, 9).setBackground('#e8f5e9'); // Light green
     }
   }
 
   // Auto-resize columns
   shOut.autoResizeColumns(1, 4);
-  shOut.setColumnWidth(5, 100);
-  shOut.setColumnWidth(6, 100);
-  shOut.setColumnWidth(7, 100);
+  shOut.setColumnWidth(5, 110);
+  shOut.setColumnWidth(6, 110);
+  shOut.setColumnWidth(7, 110);
+  shOut.setColumnWidth(8, 110);
+  shOut.setColumnWidth(9, 100);
 
   console.log('=== BUILD LIST END ===');
 
@@ -421,7 +427,7 @@ function scanInboxToLog() {
         date: dateFormatted,
         count: messages.length,
         labels: labels,
-        link: `https://mail.google.com/mail/u/0/#inbox/${threadId}`,
+        link: buildGmailThreadUrl_(threadId),
         snippet: snippet,
         isSnoozed: false
       };

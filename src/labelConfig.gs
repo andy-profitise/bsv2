@@ -61,7 +61,15 @@ const LABEL_CFG_DEFAULTS = {
   //   "name"     = search by vendor name in subject/body
   //   "contacts" = search by contact email addresses
   //   "both"     = search by both name and contacts
-  vendor_search_mode: 'both'
+  vendor_search_mode: 'both',
+
+  // Team member 1 (name and email for Gmail link columns)
+  team_member_1_name: 'Andy',
+  team_member_1_email: 'andy@profitise.com',
+
+  // Team member 2 (name and email for Gmail link columns)
+  team_member_2_name: 'Aden',
+  team_member_2_email: 'aden@profitise.com'
 };
 
 // Column positions in Settings sheet for label config (1-based)
@@ -183,13 +191,54 @@ function buildVendorEmailQuery_(vendorName, vendorSlug, contactEmails) {
 }
 
 /**
- * Build a Gmail search link URL from a query
+ * Build a Gmail search link URL from a query.
+ * Uses /u/0/ by default (each person's primary account).
  *
  * @param {string} query - Gmail search query
  * @returns {string} Gmail URL
  */
 function buildGmailSearchUrl_(query) {
   return `https://mail.google.com/mail/u/0/#search/${encodeURIComponent(query)}`;
+}
+
+/**
+ * Build a Gmail thread link URL.
+ * Uses /u/0/ (each person's primary account).
+ *
+ * @param {string} threadId - Gmail thread ID
+ * @returns {string} Gmail thread URL
+ */
+function buildGmailThreadUrl_(threadId) {
+  return `https://mail.google.com/mail/u/0/#inbox/${threadId}`;
+}
+
+/**
+ * Get team member config for building dual Gmail columns.
+ * Returns: { m1: {name, email}, m2: {name, email} }
+ */
+function getTeamMembers_() {
+  const cfg = getLabelConfig_();
+  return {
+    m1: {
+      name: cfg.team_member_1_name || 'Person 1',
+      email: cfg.team_member_1_email || ''
+    },
+    m2: {
+      name: cfg.team_member_2_name || 'Person 2',
+      email: cfg.team_member_2_email || ''
+    }
+  };
+}
+
+/**
+ * Get the current user's team member key ('m1' or 'm2').
+ * Falls back to 'm1' if the current user's email doesn't match either.
+ */
+function getCurrentTeamMemberKey_() {
+  const email = Session.getActiveUser().getEmail().toLowerCase();
+  const team = getTeamMembers_();
+  if (email === team.m2.email.toLowerCase()) return 'm2';
+  return 'm1';
 }
 
 /**
@@ -335,6 +384,10 @@ function setupLabelConfig() {
     ['email_log_spreadsheet_id', LABEL_CFG_DEFAULTS.email_log_spreadsheet_id, 'Google Sheet ID for email logging (blank = create new)'],
     ['overdue_business_hours', LABEL_CFG_DEFAULTS.overdue_business_hours, 'Business hours before priority+waiting email is overdue'],
     ['overdue_external_days', LABEL_CFG_DEFAULTS.overdue_external_days, 'Days before "waiting on external" email is overdue'],
+    ['team_member_1_name', LABEL_CFG_DEFAULTS.team_member_1_name, 'First team member display name (for Gmail link column headers)'],
+    ['team_member_1_email', LABEL_CFG_DEFAULTS.team_member_1_email, 'First team member email (used to detect who is running the script)'],
+    ['team_member_2_name', LABEL_CFG_DEFAULTS.team_member_2_name, 'Second team member display name (for Gmail link column headers)'],
+    ['team_member_2_email', LABEL_CFG_DEFAULTS.team_member_2_email, 'Second team member email (used to detect who is running the script)'],
   ];
 
   if (entries.length > 0) {

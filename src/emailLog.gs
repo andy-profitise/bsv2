@@ -220,7 +220,7 @@ function logEmailsToSheet_(emails, vendorName, threads) {
       snippet = email.snippet || '';
     }
 
-    const threadLink = `https://mail.google.com/mail/u/0/#inbox/${email.threadId}`;
+    const threadLink = buildGmailThreadUrl_(email.threadId);
 
     newRows.push([
       now,                    // Timestamp

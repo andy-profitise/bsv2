@@ -30,14 +30,16 @@ const BS_CFG = {
   GMAIL_OUTPUT_SHEET: 'Gmail Review Output',
   TASKS_SHEET: 'monday.com tasks',
   
-  // List sheet columns (0-based) - v2: no TTL column
+  // List sheet columns (0-based) - v2: dual Gmail links for both team members
   L_VENDOR: 0,
   L_SOURCE: 1,
   L_STATUS: 2,
   L_NOTES: 3,
-  L_GMAIL_LINK: 4,
-  L_NO_SNOOZE: 5,
-  L_PROCESSED: 6,
+  L_M1_GMAIL: 4,      // Team member 1 Gmail link
+  L_M1_NO_SNOOZE: 5,  // Team member 1 no-snooze link
+  L_M2_GMAIL: 6,      // Team member 2 Gmail link
+  L_M2_NO_SNOOZE: 7,  // Team member 2 no-snooze link
+  L_PROCESSED: 8,
   
   // Battle Station layout
   HEADER_ROWS: 3,
@@ -477,7 +479,7 @@ function loadVendorData(vendorIndex, options) {
   if (vendorIndex > totalVendors) vendorIndex = totalVendors;
   
   const listRow = vendorIndex + 1;
-  const vendorData = listSh.getRange(listRow, 1, 1, 7).getValues()[0];
+  const vendorData = listSh.getRange(listRow, 1, 1, 9).getValues()[0];
 
   const vendor = vendorData[BS_CFG.L_VENDOR] || '';
   const source = vendorData[BS_CFG.L_SOURCE] || '';
@@ -2258,9 +2260,13 @@ function getEmailsForVendor_(vendor, listRow) {
     Logger.log(`=== GMAIL SEARCH (Label-Agnostic) ===`);
     Logger.log(`Vendor: ${vendor}`);
 
-    // Try List sheet links first (backward compatible)
-    const gmailLinkAll = listSh.getRange(listRow, BS_CFG.L_GMAIL_LINK + 1).getValue();
-    const gmailLinkNoSnooze = listSh.getRange(listRow, BS_CFG.L_NO_SNOOZE + 1).getValue();
+    // Pick Gmail link columns for the current user (m1 or m2)
+    const memberKey = getCurrentTeamMemberKey_();
+    const gmailColIdx = memberKey === 'm2' ? BS_CFG.L_M2_GMAIL : BS_CFG.L_M1_GMAIL;
+    const noSnoozeColIdx = memberKey === 'm2' ? BS_CFG.L_M2_NO_SNOOZE : BS_CFG.L_M1_NO_SNOOZE;
+
+    const gmailLinkAll = listSh.getRange(listRow, gmailColIdx + 1).getValue();
+    const gmailLinkNoSnooze = listSh.getRange(listRow, noSnoozeColIdx + 1).getValue();
 
     let allEmails = [];
     let noSnoozeThreadIds = new Set();
@@ -2367,7 +2373,7 @@ function searchGmailDirect_(searchQuery, querySetName) {
       const date = lastMessage.getDate();
       const labels = thread.getLabels().map(label => label.getName()).join(', ');
       const threadId = thread.getId();
-      const threadLink = `https://mail.google.com/mail/u/0/#inbox/${threadId}`;
+      const threadLink = buildGmailThreadUrl_(threadId);
 
       let snippet = '';
       try {
@@ -2438,7 +2444,7 @@ function searchGmailFromLink_(gmailLink, querySetName) {
       const date = lastMessage.getDate(); // Use last message date
       const labels = thread.getLabels().map(label => label.getName()).join(', ');
       const threadId = thread.getId();
-      const threadLink = `https://mail.google.com/mail/u/0/#inbox/${threadId}`;
+      const threadLink = buildGmailThreadUrl_(threadId);
       
       let snippet = '';
       try {
@@ -4158,8 +4164,10 @@ function battleStationOpenGmail() {
   }
   
   const listRow = currentIndex + 1;
-  const gmailLink = listSh.getRange(listRow, BS_CFG.L_GMAIL_LINK + 1).getValue();
-  
+  const memberKey = getCurrentTeamMemberKey_();
+  const gmailColIdx = memberKey === 'm2' ? BS_CFG.L_M2_GMAIL : BS_CFG.L_M1_GMAIL;
+  const gmailLink = listSh.getRange(listRow, gmailColIdx + 1).getValue();
+
   if (!gmailLink || gmailLink.toString().indexOf('#search') === -1) {
     SpreadsheetApp.getUi().alert('No valid Gmail search link found.');
     return;
