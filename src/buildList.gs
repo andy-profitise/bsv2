@@ -164,6 +164,10 @@ function buildListWithGmailAndNotes() {
       const contactEmails = vendorContactEmailMapForHot.get(vendorKey) || [];
 
       const queries = buildVendorEmailQuery_(v.name, vendorSlug, contactEmails);
+      if (!queries) {
+        // No active contacts → no Gmail search links
+        return ['', '', '', '', false];
+      }
       const gmailAll = buildGmailSearchUrl_(queries.allQuery);
       const gmailNoSnooze = buildGmailSearchUrl_(queries.noSnoozeQuery);
 
