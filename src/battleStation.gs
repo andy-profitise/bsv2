@@ -1618,20 +1618,22 @@ function loadVendorData(vendorIndex, options) {
     }
   }
 
-  // Show email log stats if available
-  try {
-    const logStats = getEmailLogStats_(vendor);
-    if (logStats.total > 0) {
-      bsSh.getRange(currentRow, 1, 1, 4).merge()
-        .setValue(`📊 Email Log: ${logStats.total} total (${logStats.singlePerson} single-person) | Latest: ${logStats.latestDate ? Utilities.formatDate(logStats.latestDate, 'America/Los_Angeles', 'MMM d, yyyy') : 'N/A'}`)
-        .setFontSize(8)
-        .setFontStyle('italic')
-        .setFontColor('#666666')
-        .setBackground('#f9f9f9');
-      currentRow++;
+  // Show email log stats if we have live emails (skip if no active contacts / no search)
+  if (emails.length > 0) {
+    try {
+      const logStats = getEmailLogStats_(vendor);
+      if (logStats.total > 0) {
+        bsSh.getRange(currentRow, 1, 1, 4).merge()
+          .setValue(`📊 Email Log: ${logStats.total} total (${logStats.singlePerson} single-person) | Latest: ${logStats.latestDate ? Utilities.formatDate(logStats.latestDate, 'America/Los_Angeles', 'MMM d, yyyy') : 'N/A'}`)
+          .setFontSize(8)
+          .setFontStyle('italic')
+          .setFontColor('#666666')
+          .setBackground('#f9f9f9');
+        currentRow++;
+      }
+    } catch (e) {
+      // Non-fatal - skip log stats
     }
-  } catch (e) {
-    // Non-fatal - skip log stats
   }
 
   bsSh.setRowHeight(currentRow, 10);
