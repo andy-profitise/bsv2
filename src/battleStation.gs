@@ -1671,9 +1671,12 @@ function loadVendorData(vendorIndex, options) {
   currentRow++;
   
   if (tasks.length === 0) {
-    // Check if vendor is in Onboarding group - should have tasks
-    const statusLower = (liveStatus || '').toLowerCase();
-    const needsTasksWarning = statusLower.includes('onboarding');
+    // Check if vendor is in Live, Onboarding, or Paused group - should have tasks
+    // Use exact matching to avoid "Preonboarding" matching "onboarding"
+    const statusLower = (liveStatus || '').trim().toLowerCase();
+    const needsTasksWarning = statusLower === 'live' ||
+                               statusLower === 'onboarding' ||
+                               statusLower === 'paused';
 
     if (needsTasksWarning) {
       // Show warning with link to Claude task generator
