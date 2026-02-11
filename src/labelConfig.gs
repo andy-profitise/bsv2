@@ -69,7 +69,11 @@ const LABEL_CFG_DEFAULTS = {
 
   // Team member 2 (name and email for Gmail link columns)
   team_member_2_name: 'Aden',
-  team_member_2_email: 'aden@profitise.com'
+  team_member_2_email: 'aden@profitise.com',
+
+  // Shared Google Drive folder ID (all created files go here)
+  // Get this from the folder URL: drive.google.com/drive/folders/THIS_PART
+  shared_drive_folder_id: ''
 };
 
 // Column positions in Settings sheet for label config (1-based)
@@ -388,6 +392,7 @@ function setupLabelConfig() {
     ['team_member_1_email', LABEL_CFG_DEFAULTS.team_member_1_email, 'First team member email (used to detect who is running the script)'],
     ['team_member_2_name', LABEL_CFG_DEFAULTS.team_member_2_name, 'Second team member display name (for Gmail link column headers)'],
     ['team_member_2_email', LABEL_CFG_DEFAULTS.team_member_2_email, 'Second team member email (used to detect who is running the script)'],
+    ['shared_drive_folder_id', LABEL_CFG_DEFAULTS.shared_drive_folder_id, 'Google Drive folder ID for all created files (from URL: drive.google.com/drive/folders/THIS_PART)'],
   ];
 
   if (entries.length > 0) {
@@ -407,4 +412,102 @@ function setupLabelConfig() {
     'Edit the "Setting Value" column (H) to configure your Gmail label structure.\n\n' +
     'Default: Searches label:inbox with name-based vendor matching.'
   );
+}
+
+
+/** ========== SHARED DRIVE FOLDER ========== **/
+
+/**
+ * Get the configured shared Google Drive folder.
+ * Returns null if no folder ID is configured.
+ *
+ * @returns {DriveApp.Folder|null}
+ */
+function getSharedDriveFolder_() {
+  const cfg = getLabelConfig_();
+  const folderId = cfg.shared_drive_folder_id;
+  if (!folderId) return null;
+
+  try {
+    return DriveApp.getFolderById(folderId);
+  } catch (e) {
+    console.log(`Could not access shared folder (${folderId}): ${e.message}`);
+    return null;
+  }
+}
+
+/**
+ * Move a file into the shared Google Drive folder.
+ * If no shared folder is configured, the file stays where it is.
+ *
+ * @param {string} fileId - The Google Drive file ID to move
+ * @returns {boolean} true if moved, false if no folder configured or error
+ */
+function moveFileToSharedFolder_(fileId) {
+  const folder = getSharedDriveFolder_();
+  if (!folder) return false;
+
+  try {
+    const file = DriveApp.getFileById(fileId);
+    file.moveTo(folder);
+    console.log(`Moved file "${file.getName()}" to shared folder`);
+    return true;
+  } catch (e) {
+    console.log(`Error moving file to shared folder: ${e.message}`);
+    return false;
+  }
+}
+
+/**
+ * Create a subfolder inside the shared Google Drive folder.
+ * Falls back to creating in the root of My Drive if no shared folder configured.
+ *
+ * @param {string} folderName - Name for the new subfolder
+ * @returns {DriveApp.Folder}
+ */
+function createSubfolderInShared_(folderName) {
+  const parent = getSharedDriveFolder_();
+
+  if (parent) {
+    // Check if subfolder already exists
+    const existing = parent.getFoldersByName(folderName);
+    if (existing.hasNext()) return existing.next();
+    const sub = parent.createFolder(folderName);
+    console.log(`Created subfolder "${folderName}" in shared folder`);
+    return sub;
+  }
+
+  // Fallback: root of My Drive
+  const existing = DriveApp.getFoldersByName(folderName);
+  if (existing.hasNext()) return existing.next();
+  return DriveApp.createFolder(folderName);
+}
+
+/**
+ * Menu entry: Move the main spreadsheet into the shared folder.
+ * Run this once after setting the shared_drive_folder_id.
+ */
+function moveMainSpreadsheetToSharedFolder() {
+  const folder = getSharedDriveFolder_();
+  if (!folder) {
+    SpreadsheetApp.getUi().alert(
+      'No shared folder configured.\n\n' +
+      'Set "shared_drive_folder_id" in Settings (columns G-H) first.'
+    );
+    return;
+  }
+
+  const ss = SpreadsheetApp.getActive();
+  const fileId = ss.getId();
+
+  try {
+    const file = DriveApp.getFileById(fileId);
+    file.moveTo(folder);
+    SpreadsheetApp.getUi().alert(
+      `Moved "${ss.getName()}" to shared folder.\n\n` +
+      `Aden should now see it in the shared folder.`
+    );
+  } catch (e) {
+    SpreadsheetApp.getUi().alert(`Error moving spreadsheet: ${e.message}`);
+  }
 }

@@ -241,6 +241,7 @@ function onOpen() {
     .addItem('📊 Scan Inbox to Log (for 2nd user)', 'scanInboxToLog')
     .addItem('📊 Open Email Log', 'battleStationOpenEmailLog')
     .addItem('📊 Re-log Emails for Vendor', 'battleStationRelogEmails')
+    .addItem('📁 Move Spreadsheet to Shared Folder', 'moveMainSpreadsheetToSharedFolder')
     .addItem('🔍 Go to Specific Vendor...', 'battleStationGoTo')
     .addToUi();
 }

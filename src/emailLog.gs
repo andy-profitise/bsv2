@@ -97,8 +97,11 @@ function createEmailLogSpreadsheet_() {
   // Freeze header row
   logSheet.setFrozenRows(1);
 
-  // Save the ID to Settings
+  // Move to shared folder (if configured)
   const logId = logSS.getId();
+  moveFileToSharedFolder_(logId);
+
+  // Save the ID to Settings
   saveEmailLogSpreadsheetId_(logId);
 
   Logger.log(`Created email log spreadsheet: ${logSS.getUrl()}`);

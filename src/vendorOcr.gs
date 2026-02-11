@@ -507,13 +507,9 @@ function saveScreenshotToDrive_(imageData, fileName) {
  */
 function getOrCreateUploadsFolder_() {
   const folderName = OCR_CFG.UPLOADS_FOLDER_NAME;
-  const folders = DriveApp.getFoldersByName(folderName);
 
-  if (folders.hasNext()) {
-    return folders.next();
-  }
-
-  return DriveApp.createFolder(folderName);
+  // Use shared folder as parent if configured
+  return createSubfolderInShared_(folderName);
 }
 
 
