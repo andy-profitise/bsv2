@@ -2262,68 +2262,38 @@ function getEmailsForVendor_(vendor, listRow) {
     Logger.log(`=== GMAIL SEARCH (Label-Agnostic) ===`);
     Logger.log(`Vendor: ${vendor}`);
 
-    // Pick Gmail link columns for the current user (m1 or m2)
-    const memberKey = getCurrentTeamMemberKey_();
-    const gmailColIdx = memberKey === 'm2' ? BS_CFG.L_M2_GMAIL : BS_CFG.L_M1_GMAIL;
-    const noSnoozeColIdx = memberKey === 'm2' ? BS_CFG.L_M2_NO_SNOOZE : BS_CFG.L_M1_NO_SNOOZE;
-
-    const gmailLinkAll = listSh.getRange(listRow, gmailColIdx + 1).getValue();
-    const gmailLinkNoSnooze = listSh.getRange(listRow, noSnoozeColIdx + 1).getValue();
-
     let allEmails = [];
     let noSnoozeThreadIds = new Set();
-    let usedListLinks = false;
 
-    // If List sheet has valid Gmail links, use them
-    if (gmailLinkAll && gmailLinkAll.toString().includes('#search')) {
-      Logger.log(`Using List sheet Gmail link: ${gmailLinkAll}`);
-      const threadsAll = searchGmailFromLink_(gmailLinkAll, 'All');
-      Logger.log(`Found ${threadsAll.length} threads from List link`);
+    // Always build query fresh from live contact data (Active contacts only)
+    const contactData = getVendorContacts_(vendor, listRow);
+    const contactEmails = (contactData.contacts || [])
+      .filter(c => (c.status || '').toLowerCase() === 'active')
+      .map(c => c.email)
+      .filter(e => e && e.includes('@'));
+
+    // Get vendor slug from Settings sublabel map
+    const gmailSublabelMap = readGmailSublabelMap_(ss);
+    const vendorSlug = gmailSublabelMap.get(vendor.toLowerCase()) || null;
+
+    // Build queries from config
+    const queries = buildVendorEmailQuery_(vendor, vendorSlug, contactEmails);
+
+    if (!queries) {
+      Logger.log('No active contacts with email domains — skipping Gmail search');
+    } else {
+      Logger.log(`All query: ${queries.allQuery}`);
+      Logger.log(`No-snooze query: ${queries.noSnoozeQuery}`);
+
+      // Search with the "all" query
+      const threadsAll = searchGmailDirect_(queries.allQuery, 'All');
+      Logger.log(`Found ${threadsAll.length} threads from config query`);
       allEmails.push(...threadsAll);
-      usedListLinks = true;
 
-      if (gmailLinkNoSnooze && gmailLinkNoSnooze.toString().includes('#search')) {
-        const threadsNoSnooze = searchGmailFromLink_(gmailLinkNoSnooze, 'No Snooze');
-        for (const email of threadsNoSnooze) {
-          noSnoozeThreadIds.add(email.threadId);
-        }
-      }
-    }
-
-    // If no List links or they returned nothing, use label config
-    if (!usedListLinks || allEmails.length === 0) {
-      Logger.log('Using label-agnostic config for email search');
-
-      // Get contact emails for search (Active contacts only)
-      const contactData = getVendorContacts_(vendor, listRow);
-      const contactEmails = (contactData.contacts || [])
-        .filter(c => (c.status || '').toLowerCase() === 'active')
-        .map(c => c.email)
-        .filter(e => e && e.includes('@'));
-
-      // Get vendor slug from Settings sublabel map
-      const gmailSublabelMap = readGmailSublabelMap_(ss);
-      const vendorSlug = gmailSublabelMap.get(vendor.toLowerCase()) || null;
-
-      // Build queries from config
-      const queries = buildVendorEmailQuery_(vendor, vendorSlug, contactEmails);
-
-      if (!queries) {
-        Logger.log('No active contacts with email domains — skipping Gmail search');
-      } else {
-        Logger.log(`All query: ${queries.allQuery}`);
-        Logger.log(`No-snooze query: ${queries.noSnoozeQuery}`);
-
-        // Search with the "all" query
-        const threadsAll = searchGmailDirect_(queries.allQuery, 'All');
-        Logger.log(`Found ${threadsAll.length} threads from config query`);
-        allEmails.push(...threadsAll);
-
-        // Search with the "no snooze" query
-        const threadsNoSnooze = searchGmailDirect_(queries.noSnoozeQuery, 'No Snooze');
-        for (const email of threadsNoSnooze) {
-          noSnoozeThreadIds.add(email.threadId);
-        }
+      // Search with the "no snooze" query
+      const threadsNoSnooze = searchGmailDirect_(queries.noSnoozeQuery, 'No Snooze');
+      for (const email of threadsNoSnooze) {
+        noSnoozeThreadIds.add(email.threadId);
       }
     }
 
