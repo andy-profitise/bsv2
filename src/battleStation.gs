@@ -1,5 +1,5 @@
 /************************************************************
- * BATTLE STATION v2 - Label-Agnostic Vendor Review Dashboard
+ * BATTLE STATION v2 - Label-Agnostic Vendor Review Dashboard (auto-deployed via GitHub Actions)
  *
  * Features:
  * - LABEL-AGNOSTIC: Configure any Gmail label structure via Settings
