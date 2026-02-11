@@ -903,3 +903,117 @@ function mustGetSheet_(ss, name) {
   if (!sh) throw new Error(`Required sheet "${name}" not found`);
   return sh;
 }
+
+/************************************************************
+ * SYNC LIST FROM PARTNER
+ ************************************************************/
+
+/**
+ * Set the partner's spreadsheet ID so Sync List can pull from it.
+ */
+function setupPartnerSpreadsheet() {
+  const ui = SpreadsheetApp.getUi();
+  const props = PropertiesService.getScriptProperties();
+  const current = props.getProperty('BS_PARTNER_SSID') || '';
+
+  const response = ui.prompt(
+    '🔗 Partner Spreadsheet',
+    `Enter your partner's spreadsheet ID (from their URL).\n\nCurrent: ${current || '(not set)'}\n\nThis lets "Sync List from Partner" copy their List into yours.`,
+    ui.ButtonSet.OK_CANCEL
+  );
+
+  if (response.getSelectedButton() !== ui.Button.OK) return;
+
+  const ssid = response.getResponseText().trim();
+  if (!ssid) {
+    props.deleteProperty('BS_PARTNER_SSID');
+    ui.alert('Partner spreadsheet cleared.');
+    return;
+  }
+
+  // Validate we can open it
+  try {
+    const partnerSs = SpreadsheetApp.openById(ssid);
+    const listSh = partnerSs.getSheetByName('List');
+    if (!listSh) {
+      ui.alert('Error', 'That spreadsheet doesn\'t have a "List" sheet.', ui.ButtonSet.OK);
+      return;
+    }
+    props.setProperty('BS_PARTNER_SSID', ssid);
+    ui.alert(`Partner set to: ${partnerSs.getName()}\n\nYou can now use "Sync List from Partner" to pull their List.`);
+  } catch (e) {
+    ui.alert('Error', `Could not open spreadsheet: ${e.message}\n\nMake sure you have access to it.`, ui.ButtonSet.OK);
+  }
+}
+
+/**
+ * Copy the partner's List sheet data into this spreadsheet's List sheet.
+ * Preserves their exact order (e.g. after Smart Briefing reorders).
+ */
+function syncListFromPartner() {
+  const ss = SpreadsheetApp.getActive();
+  const ui = SpreadsheetApp.getUi();
+  const props = PropertiesService.getScriptProperties();
+  const partnerSsid = props.getProperty('BS_PARTNER_SSID');
+
+  if (!partnerSsid) {
+    ui.alert('No partner configured.\n\nUse "Set Partner Spreadsheet" first.');
+    return;
+  }
+
+  ss.toast('Opening partner spreadsheet...', '🔗 Sync List', 3);
+
+  let partnerListSh;
+  try {
+    const partnerSs = SpreadsheetApp.openById(partnerSsid);
+    partnerListSh = partnerSs.getSheetByName('List');
+    if (!partnerListSh) {
+      ui.alert('Error', 'Partner spreadsheet no longer has a "List" sheet.', ui.ButtonSet.OK);
+      return;
+    }
+  } catch (e) {
+    ui.alert('Error', `Could not open partner spreadsheet: ${e.message}`, ui.ButtonSet.OK);
+    return;
+  }
+
+  // Read partner's full list (headers + data)
+  const partnerData = partnerListSh.getDataRange().getValues();
+  if (partnerData.length < 2) {
+    ui.alert('Partner\'s List is empty.');
+    return;
+  }
+
+  ss.toast(`Copying ${partnerData.length - 1} vendors...`, '🔗 Sync List', 3);
+
+  // Get or create local List sheet
+  let localListSh = ss.getSheetByName('List');
+  if (!localListSh) {
+    localListSh = ss.insertSheet('List');
+  }
+
+  // Clear and write
+  localListSh.clearContents();
+  localListSh.clearFormats();
+  localListSh.getRange(1, 1, partnerData.length, partnerData[0].length).setValues(partnerData);
+
+  // Copy column widths
+  for (let c = 1; c <= partnerData[0].length; c++) {
+    try {
+      localListSh.setColumnWidth(c, partnerListSh.getColumnWidth(c));
+    } catch (e) { /* ignore */ }
+  }
+
+  // Copy header formatting (row 1)
+  const headerSource = partnerListSh.getRange(1, 1, 1, partnerData[0].length);
+  const headerDest = localListSh.getRange(1, 1, 1, partnerData[0].length);
+  headerDest.setFontWeights(headerSource.getFontWeights());
+  headerDest.setBackgrounds(headerSource.getBackgrounds());
+
+  // Copy row colors (review state, skipped, etc.)
+  try {
+    const rowBgs = partnerListSh.getRange(1, 1, partnerData.length, partnerData[0].length).getBackgrounds();
+    localListSh.getRange(1, 1, partnerData.length, partnerData[0].length).setBackgrounds(rowBgs);
+  } catch (e) { /* ignore */ }
+
+  ss.toast(`Synced ${partnerData.length - 1} vendors from partner!`, '✅ Sync Complete', 5);
+}
