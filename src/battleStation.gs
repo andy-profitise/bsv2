@@ -2294,9 +2294,10 @@ function getEmailsForVendor_(vendor, listRow) {
     if (!usedListLinks || allEmails.length === 0) {
       Logger.log('Using label-agnostic config for email search');
 
-      // Get contact emails for search
+      // Get contact emails for search (Active contacts only)
       const contactData = getVendorContacts_(vendor, listRow);
       const contactEmails = (contactData.contacts || [])
+        .filter(c => (c.status || '').toLowerCase() === 'active')
         .map(c => c.email)
         .filter(e => e && e.includes('@'));
 
